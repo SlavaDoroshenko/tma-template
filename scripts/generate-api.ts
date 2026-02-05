@@ -3,7 +3,10 @@
  *
  * Использование:
  *   npx tsx scripts/generate-api.ts --url https://api.example.com/openapi.json --output src/data
+ *   npx tsx scripts/generate-api.ts --url https://api.example.com/crm/openapi.json,https://api.example.com/auth/openapi.json --output src/data
  *   npx tsx scripts/generate-api.ts --file ./swagger.json --output src/data
+ *
+ * Несколько URL через запятую — все эндпоинты объединяются в одни файлы.
  *
  * Генерирует 3 файла:
  *   - types.ts      — TypeScript типы для запросов и ответов
@@ -35,10 +38,10 @@ const outputDir = getArg("output") || "src/data";
 if (!specUrl && !specFile) {
   console.error("Ошибка: укажите --url или --file для спецификации OpenAPI");
   console.error(
-    "  npx tsx scripts/generate-api.ts --url https://api.example.com/openapi.json --output src/data"
+    "  npx tsx scripts/generate-api.ts --url https://api.example.com/openapi.json --output src/data",
   );
   console.error(
-    "  npx tsx scripts/generate-api.ts --file ./swagger.json --output src/data"
+    "  npx tsx scripts/generate-api.ts --file ./swagger.json --output src/data",
   );
   process.exit(1);
 }
@@ -155,8 +158,7 @@ function getRequestBodySchema(requestBody: any): any {
   if (!requestBody) return null;
 
   const content =
-    requestBody.content?.["application/json"] ||
-    requestBody.content?.["*/*"];
+    requestBody.content?.["application/json"] || requestBody.content?.["*/*"];
   return content?.schema || null;
 }
 
@@ -234,26 +236,70 @@ interface EndpointInfo {
   hasPathParams: boolean;
 }
 
-async function loadSpec(): Promise<any> {
+async function loadSingleSpec(url: string): Promise<any> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    throw new Error(
+      `Не удалось загрузить спецификацию из ${url}: ${error instanceof Error ? error.message : "неизвестная ошибка"}`,
+    );
+  }
+}
+
+/**
+ * Извлечение префикса модуля из URL
+ *
+ * Ожидаемый формат: https://api.com/module/openapi.json → "module"
+ * - /crm/openapi.json → "crm"
+ * - /v1/auth/swagger.json → "auth"
+ * - /openapi.json → "" (без префикса)
+ */
+function extractPrefixFromUrl(url: string): string {
+  try {
+    const pathname = new URL(url).pathname;
+    // Берём предпоследний сегмент пути (перед openapi.json / swagger.json)
+    const segments = pathname.split("/").filter(Boolean);
+    if (segments.length >= 2) {
+      return segments[segments.length - 2];
+    }
+  } catch {
+    // Ignore invalid URLs and return empty prefix
+  }
+  return "";
+}
+
+interface SpecWithPrefix {
+  spec: any;
+  prefix: string;
+}
+
+async function loadSpecs(): Promise<SpecWithPrefix[]> {
   if (specFile) {
     const content = fs.readFileSync(specFile, "utf-8");
-    return JSON.parse(content);
+    return [{ spec: JSON.parse(content), prefix: "" }];
   }
 
   if (specUrl) {
-    const response = await fetch(specUrl);
-    if (!response.ok) {
-      throw new Error(
-        `Не удалось загрузить спецификацию: ${response.status} ${response.statusText}`
-      );
+    // Поддержка нескольких URL через запятую
+    const urls = specUrl.split(",").map((u) => u.trim()).filter(Boolean);
+    const needPrefix = urls.length > 1;
+    const results: SpecWithPrefix[] = [];
+    for (const url of urls) {
+      const spec = await loadSingleSpec(url);
+      const prefix = needPrefix ? extractPrefixFromUrl(url) : "";
+      results.push({ spec, prefix });
     }
-    return response.json();
+    return results;
   }
 
   throw new Error("Не указан источник спецификации");
 }
 
-function parseEndpoints(spec: any): EndpointInfo[] {
+function parseEndpoints(spec: any, prefix: string = ""): EndpointInfo[] {
   const endpoints: EndpointInfo[] = [];
   const paths = spec.paths || {};
 
@@ -262,7 +308,11 @@ function parseEndpoints(spec: any): EndpointInfo[] {
       if (["get", "post", "put", "patch", "delete"].indexOf(method) === -1)
         continue;
 
-      const camelName = pathToCamelCase(apiPath);
+      const rawCamelName = pathToCamelCase(apiPath);
+      // При наличии префикса добавляем его к имени для уникальности
+      const camelName = prefix
+        ? `${prefix}${capitalize(rawCamelName)}`
+        : rawCamelName;
       const typeName = `I${method}${capitalize(camelName)}`;
 
       // Параметры
@@ -285,17 +335,18 @@ function parseEndpoints(spec: any): EndpointInfo[] {
       // Тело запроса и ответ
       const requestBodySchema = resolveAllRefs(
         spec,
-        getRequestBodySchema(operation.requestBody)
+        getRequestBodySchema(operation.requestBody),
       );
       const responseSchema = resolveAllRefs(
         spec,
-        getResponseSchema(operation.responses)
+        getResponseSchema(operation.responses),
       );
 
       endpoints.push({
         method,
         path: apiPath,
-        operationId: operation.operationId || `${method}${capitalize(camelName)}`,
+        operationId:
+          operation.operationId || `${method}${capitalize(camelName)}`,
         camelName,
         typeName,
         queryParams,
@@ -327,7 +378,7 @@ function generateTypes(endpoints: EndpointInfo[]): string {
     if (ep.responseSchema) {
       lines.push(`// ${ep.method.toUpperCase()} ${ep.path} — ответ`);
       lines.push(
-        `export type ${ep.typeName}Response = ${schemaToTs(ep.responseSchema)};`
+        `export type ${ep.typeName}Response = ${schemaToTs(ep.responseSchema)};`,
       );
       lines.push("");
     }
@@ -336,16 +387,18 @@ function generateTypes(endpoints: EndpointInfo[]): string {
     if (ep.hasRequestBody && ep.requestBodySchema) {
       lines.push(`// ${ep.method.toUpperCase()} ${ep.path} — тело запроса`);
       lines.push(
-        `export type ${ep.typeName}Request = ${schemaToTs(ep.requestBodySchema)};`
+        `export type ${ep.typeName}Request = ${schemaToTs(ep.requestBodySchema)};`,
       );
       lines.push("");
     }
 
     // Тип параметров запроса
     if (ep.hasQueryParams) {
-      lines.push(`// ${ep.method.toUpperCase()} ${ep.path} — параметры запроса`);
+      lines.push(
+        `// ${ep.method.toUpperCase()} ${ep.path} — параметры запроса`,
+      );
       const paramLines = ep.queryParams.map(
-        (p) => `  ${p.name}${p.required ? "" : "?"}: ${p.type};`
+        (p) => `  ${p.name}${p.required ? "" : "?"}: ${p.type};`,
       );
       lines.push(`export type ${ep.typeName}Params = {`);
       lines.push(...paramLines);
@@ -386,9 +439,7 @@ function generateQueries(endpoints: EndpointInfo[]): string {
 
   for (const ep of endpoints) {
     const funcName = `${ep.method}${capitalize(ep.camelName)}`;
-    const responseType = ep.responseSchema
-      ? `${ep.typeName}Response`
-      : "any";
+    const responseType = ep.responseSchema ? `${ep.typeName}Response` : "any";
 
     // Построение параметров функции
     const funcParams: string[] = [];
@@ -405,7 +456,7 @@ function generateQueries(endpoints: EndpointInfo[]): string {
     }
 
     // Построение URL
-    let urlExpr = `\`${ep.path.replace(/\{(\w+)\}/g, "${$1}")}\``;
+    const urlExpr = `\`${ep.path.replace(/\{(\w+)\}/g, "${$1}")}\``;
 
     // Построение options для axios
     const axiosArgs: string[] = [urlExpr];
@@ -423,10 +474,10 @@ function generateQueries(endpoints: EndpointInfo[]): string {
     }
 
     lines.push(
-      `export const ${funcName} = async (${funcParams.join(", ")}) => {`
+      `export const ${funcName} = async (${funcParams.join(", ")}) => {`,
     );
     lines.push(
-      `  const response = await axiosInstance.${ep.method}<${responseType}>(${axiosArgs.join(", ")});`
+      `  const response = await axiosInstance.${ep.method}<${responseType}>(${axiosArgs.join(", ")});`,
     );
     lines.push("  return response.data;");
     lines.push("};");
@@ -478,14 +529,14 @@ function generateHooks(endpoints: EndpointInfo[]): string {
       }
 
       if (ep.hasQueryParams) {
-        hookParams.push(`params: Parameters<typeof ${funcName}>[${ep.hasPathParams ? ep.pathParams.length : 0}]`);
+        hookParams.push(
+          `params: Parameters<typeof ${funcName}>[${ep.hasPathParams ? ep.pathParams.length : 0}]`,
+        );
         queryKeyParts.push("params");
         callArgs.push("params");
       }
 
-      lines.push(
-        `export const ${hookName} = (${hookParams.join(", ")}) => {`
-      );
+      lines.push(`export const ${hookName} = (${hookParams.join(", ")}) => {`);
       lines.push(`  return useQuery({`);
       lines.push(`    queryKey: [${queryKeyParts.join(", ")}],`);
 
@@ -499,12 +550,42 @@ function generateHooks(endpoints: EndpointInfo[]): string {
       lines.push(`};`);
     } else {
       // useMutation хук
-      lines.push(`export const ${hookName} = () => {`);
-      lines.push(`  return useMutation({`);
-      lines.push(`    mutationFn: ${funcName},`);
+      // useMutation принимает функцию с ОДНИМ аргументом,
+      // поэтому при наличии нескольких параметров оборачиваем в объект
+      const mutationParams: string[] = [];
+      const mutationTypes: string[] = [];
+      const callArgs: string[] = [];
+
+      if (ep.hasPathParams) {
+        for (const p of ep.pathParams) {
+          mutationParams.push(p.name);
+          mutationTypes.push(`${p.name}: ${p.type}`);
+          callArgs.push(p.name);
+        }
+      }
+      if (ep.hasRequestBody && ep.requestBodySchema) {
+        mutationParams.push("body");
+        mutationTypes.push(`body: Parameters<typeof ${funcName}>[${ep.pathParams.length}]`);
+        callArgs.push("body");
+      }
+
+      if (mutationParams.length <= 1 && !ep.hasPathParams) {
+        // Простой случай: 0 или 1 аргумент — передаём напрямую
+        lines.push(`export const ${hookName} = () => {`);
+        lines.push(`  return useMutation({`);
+        lines.push(`    mutationFn: ${funcName},`);
+      } else {
+        // Несколько аргументов — деструктурируем из объекта
+        const destructure = `{ ${mutationParams.join(", ")} }`;
+        const typeAnnotation = `{ ${mutationTypes.join(", ")} }`;
+        lines.push(`export const ${hookName} = () => {`);
+        lines.push(`  return useMutation({`);
+        lines.push(`    mutationFn: (${destructure}: ${typeAnnotation}) => ${funcName}(${callArgs.join(", ")}),`);
+      }
+
       lines.push(`    onError: (error: any) => {`);
       lines.push(
-        `      toast.error(error.response?.data?.errors?.[0]?.msg || "Произошла ошибка");`
+        `      toast.error(error.response?.data?.errors?.[0]?.msg || "Произошла ошибка");`,
       );
       lines.push(`    },`);
       lines.push(`  });`);
@@ -555,14 +636,22 @@ export const axiosInstance: AxiosInstance = axios.create({
 async function main() {
   console.log("Загрузка OpenAPI спецификации...");
 
-  const spec = await loadSpec();
+  const specs = await loadSpecs();
 
-  console.log(
-    `Спецификация загружена: ${spec.info?.title || "Без названия"} v${spec.info?.version || "?"}`
-  );
+  // Собираем все эндпоинты из всех спецификаций в один массив
+  const allEndpoints: EndpointInfo[] = [];
+  for (const { spec, prefix } of specs) {
+    const label = prefix ? ` [${prefix}]` : "";
+    console.log(
+      `  Загружена: ${spec.info?.title || "Без названия"} v${spec.info?.version || "?"}${label}`,
+    );
+    const endpoints = parseEndpoints(spec, prefix);
+    console.log(`    Эндпоинтов: ${endpoints.length}`);
+    allEndpoints.push(...endpoints);
+  }
 
-  const endpoints = parseEndpoints(spec);
-  console.log(`Найдено эндпоинтов: ${endpoints.length}`);
+  const endpoints = allEndpoints;
+  console.log(`Всего эндпоинтов: ${endpoints.length}`);
 
   // Создание директории вывода
   const resolvedOutput = path.resolve(process.cwd(), outputDir);
@@ -589,10 +678,12 @@ async function main() {
   if (!fs.existsSync(queriesBasePath)) {
     const queriesBaseContent = generateQueriesBase();
     fs.writeFileSync(queriesBasePath, queriesBaseContent);
-    console.log(`  Записан: ${path.join(outputDir, "queries-base.ts")} (новый)`);
+    console.log(
+      `  Записан: ${path.join(outputDir, "queries-base.ts")} (новый)`,
+    );
   } else {
     console.log(
-      `  Пропущен: ${path.join(outputDir, "queries-base.ts")} (уже существует)`
+      `  Пропущен: ${path.join(outputDir, "queries-base.ts")} (уже существует)`,
     );
   }
 

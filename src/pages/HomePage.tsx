@@ -43,9 +43,9 @@ const HomePage = () => {
           />
           <QuickActionCard
             icon={<Settings className="w-7 h-7 md:w-8 md:h-8" />}
-            title="Настройки"
-            subtitle="Конфигурация"
-            onClick={() => navigateDirectional("/profile", "right")}
+            title="Информация"
+            subtitle="О шаблоне"
+            onClick={() => navigateDirectional("/detail/3", "right")}
           />
         </div>
       </section>

@@ -110,21 +110,90 @@ src/
 
 ## Генератор API кода
 
-Автоматическая генерация типов, запросов и хуков из Swagger/OpenAPI спецификации:
+Автоматическая генерация типов, запросов и хуков из Swagger/OpenAPI спецификации.
+
+### Использование
 
 ```bash
-# Из URL
-npx tsx scripts/generate-api.ts --url https://api.example.com/openapi.json --output src/data
+# Один API — из URL
+npx tsx scripts/generate-api.ts --url "https://api.example.com/openapi.json" --output src/data
 
-# Из файла
-npx tsx scripts/generate-api.ts --file ./swagger.json --output src/data
+# Один API — из локального файла
+npx tsx scripts/generate-api.ts --file "./swagger.json" --output src/data
+
+# Несколько API — через запятую (все эндпоинты в одних файлах)
+npx tsx scripts/generate-api.ts --url "https://api.example.com/crm/openapi.json,https://api.example.com/auth/openapi.json" --output src/data
 ```
 
-Генератор создаёт:
-- `types.ts` — TypeScript типы для всех запросов и ответов
-- `queries.ts` — Axios функции для каждого эндпоинта
-- `hooks.ts` — React Query хуки
-- `queries-base.ts` — базовая настройка Axios (создаётся только при первом запуске)
+При указании нескольких URL через запятую к именам автоматически добавляется префикс модуля
+(извлекается из URL: `/crm/openapi.json` → префикс `crm`), чтобы избежать дубликатов.
+При одном URL — без префикса.
+
+### Что генерируется
+
+| Файл | Содержимое | Перезаписывается |
+|------|-----------|------------------|
+| `types.ts` | TypeScript типы для всех запросов и ответов | Да |
+| `queries.ts` | Axios функции для каждого эндпоинта | Да |
+| `hooks.ts` | React Query хуки (useQuery для GET, useMutation для POST/PUT/PATCH/DELETE) | Да |
+| `queries-base.ts` | Базовая настройка Axios (baseURL, авторизация) | Нет (только при первом запуске) |
+
+### Пример сгенерированного кода
+
+Для эндпоинта `GET /users/{id}` генератор создаст:
+
+**types.ts:**
+```typescript
+export type IgetUsersByidResponse = {
+  success: boolean;
+  data: { id: number; name: string; email: string };
+};
+```
+
+**queries.ts:**
+```typescript
+export const getUsersByid = async (id: number) => {
+  const response = await axiosInstance.get<IgetUsersByidResponse>(`/users/${id}`);
+  return response.data;
+};
+```
+
+**hooks.ts:**
+```typescript
+export const useGetUsersByid = (id: number) => {
+  return useQuery({
+    queryKey: ["usersByid", id],
+    queryFn: () => getUsersByid(id),
+  });
+};
+```
+
+Для мутаций с несколькими параметрами (path + body) аргументы оборачиваются в объект:
+
+```typescript
+// Хук
+export const usePutUsersByid = () => {
+  return useMutation({
+    mutationFn: ({ id, body }: { id: number; body: IputUsersByidRequest }) =>
+      putUsersByid(id, body),
+  });
+};
+
+// Использование
+const updateUser = usePutUsersByid();
+updateUser.mutate({ id: 123, body: { name: "Новое имя" } });
+```
+
+### Именование
+
+| Эндпоинт | Тип | Запрос | Хук |
+|----------|-----|--------|-----|
+| `GET /users` | `IgetUsersResponse` | `getUsers()` | `useGetUsers()` |
+| `POST /users` | `IpostUsersRequest/Response` | `postUsers()` | `usePostUsers()` |
+| `GET /users/{id}` | `IgetUsersByidResponse` | `getUsersByid()` | `useGetUsersByid()` |
+| `DELETE /users/{id}` | `IdeleteUsersByidResponse` | `deleteUsersByid()` | `useDeleteUsersByid()` |
+
+При нескольких API добавляется префикс: `IgetCrmUsersResponse`, `useGetCrmUsers()` и т.д.
 
 ## Деплой
 

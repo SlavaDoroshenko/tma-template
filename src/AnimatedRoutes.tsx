@@ -25,6 +25,8 @@ const pageTransition = {
   ease: [0.4, 0, 0.2, 1] as const,
 };
 
+const ANIMATION_DURATION_MS = pageTransition.duration * 1000; // 450ms
+
 export default function AnimatedRoutes() {
   const location = useLocation();
   const animationDirection = useAtomValue(animationDirectionAtom);
@@ -41,7 +43,7 @@ export default function AnimatedRoutes() {
   useEffect(() => {
     const timeout = setTimeout(() => {
       scrollToTop("instant");
-    }, 150);
+    }, ANIMATION_DURATION_MS);
     return () => clearTimeout(timeout);
   }, [location.pathname]);
 

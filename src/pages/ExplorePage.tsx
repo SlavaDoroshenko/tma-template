@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Search } from "lucide-react";
 import { cn, useDebounce, useDirectionalLink } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -60,12 +60,15 @@ const ExplorePage = () => {
   const debouncedQuery = useDebounce(searchQuery, 300);
   const navigateDirectional = useDirectionalLink();
 
-  const filteredItems = DEMO_ITEMS.filter(
-    (item) =>
-      item.title.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-      item.description.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-      item.tag.toLowerCase().includes(debouncedQuery.toLowerCase())
-  );
+  const filteredItems = useMemo(() => {
+    const query = debouncedQuery.toLowerCase();
+    return DEMO_ITEMS.filter(
+      (item) =>
+        item.title.toLowerCase().includes(query) ||
+        item.description.toLowerCase().includes(query) ||
+        item.tag.toLowerCase().includes(query)
+    );
+  }, [debouncedQuery]);
 
   return (
     <div className="w-full min-h-screen pb-4 px-4 md:px-6 space-y-4 md:space-y-6">

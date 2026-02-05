@@ -8,6 +8,8 @@ export default defineConfig({
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },
   },
-  optimizeDeps: { exclude: ["lucide-react"] },
-  server: { allowedHosts: true },
+  server: {
+    allowedHosts: true,
+    host: "0.0.0.0", // Dev: разрешает подключения с локальной сети для тестирования TMA
+  },
 });

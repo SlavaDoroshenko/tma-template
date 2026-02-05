@@ -11,32 +11,19 @@ import Wrapper from "./Wrapper";
 import { useAtom } from "jotai";
 import { themeAtom } from "./data/atoms";
 import { isTMA } from "./lib/utils";
+import { getInitialTheme, applyTheme } from "./lib/theme";
 
 const AppContent = () => {
   const [theme, setTheme] = useAtom(themeAtom);
 
   // Инициализация темы из localStorage
   useEffect(() => {
-    const savedTheme = localStorage.getItem("app-theme") as
-      | "light"
-      | "dark"
-      | null;
-    const prefersDark =
-      window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const initialTheme = savedTheme || (prefersDark ? "dark" : "light");
-    setTheme(initialTheme);
+    setTheme(getInitialTheme());
   }, [setTheme]);
 
   // Применение темы к документу
   useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "dark") {
-      root.setAttribute("data-theme", "dark");
-    } else {
-      root.removeAttribute("data-theme");
-    }
-    localStorage.setItem("app-theme", theme);
+    applyTheme(theme);
   }, [theme]);
 
   // Инициализация Telegram Mini App
@@ -54,15 +41,23 @@ const AppContent = () => {
       }
     }
 
-    window.Telegram.WebApp.setHeaderColor("#212121");
-    window.Telegram.WebApp.setBackgroundColor("#212121");
     window.Telegram.WebApp.ready();
   }, []);
 
+  // Синхронизация цветов Telegram с текущей темой
+  useEffect(() => {
+    if (!window.Telegram?.WebApp) return;
+
+    const headerColor = theme === "dark" ? "#212121" : "#F5F5F5";
+    const bgColor = theme === "dark" ? "#161616" : "#F5F5F5";
+
+    window.Telegram.WebApp.setHeaderColor(headerColor);
+    window.Telegram.WebApp.setBackgroundColor(bgColor);
+  }, [theme]);
+
   return (
     <div className="font-sans">
-      <div className="invisible h-[150vh]" />
-      <div className="overflow-y-scroll fixed inset-0 z-50">
+      <div className="overflow-y-scroll overscroll-none fixed inset-0 z-50">
         <div className="relative font-sans">
           <Wrapper>
             <AnimatedRoutes />

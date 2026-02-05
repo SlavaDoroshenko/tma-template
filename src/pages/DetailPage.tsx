@@ -35,7 +35,7 @@ const DetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigateDirectional = useDirectionalLink();
 
-  const detail = id ? DEMO_DETAILS[id] : null;
+  const detail = id && DEMO_DETAILS[id] ? DEMO_DETAILS[id] : null;
 
   if (!detail) {
     return (

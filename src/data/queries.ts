@@ -18,11 +18,10 @@ import { isTMA, tgToken } from "@/lib/utils";
 export const baseUrl =
   import.meta.env.VITE_API_BASE_URL || "https://jsonplaceholder.typicode.com";
 
-// Токен авторизации: в TMA берётся из Telegram, иначе — фоллбэк для разработки
+// Токен авторизации: в TMA берётся из Telegram, иначе — из переменной окружения для dev
 const rawToken = isTMA()
   ? tgToken
-  : // Вставьте сюда тестовый токен для локальной разработки
-    "";
+  : import.meta.env.VITE_DEV_TOKEN || "";
 
 export const token = rawToken ? `tma ${rawToken}` : "";
 

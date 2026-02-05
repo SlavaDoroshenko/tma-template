@@ -14,7 +14,8 @@ export function cn(...inputs: ClassValue[]) {
 export function isTMA() {
   try {
     return !!window.Telegram?.WebView?.initParams?.tgWebAppData;
-  } catch {
+  } catch (error) {
+    console.warn("isTMA() check failed:", error);
     return false;
   }
 }
@@ -38,8 +39,12 @@ export const isIOS = (): boolean => {
 
 // Тактильная обратная связь (haptic feedback) для Telegram
 export const executeHaptic = () => {
-  if (window.TelegramWebviewProxy) {
-    // Здесь можно вызвать window.Telegram.WebApp.HapticFeedback.impactOccurred('medium')
+  try {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.impactOccurred("medium");
+    }
+  } catch {
+    // Haptic не поддерживается или недоступен
   }
 };
 
@@ -127,7 +132,11 @@ export const useDirectionalLink = () => {
     executeHaptic();
     setAnimationDirection(direction);
     setTimeout(() => {
-      navigate(linkOrDelta as any);
+      if (typeof linkOrDelta === "number") {
+        navigate(linkOrDelta);
+      } else {
+        navigate(linkOrDelta);
+      }
     }, 0);
   };
 };

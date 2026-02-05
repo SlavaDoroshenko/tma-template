@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { z } from "zod";
 
 const ProfilePage = () => {
   const [theme, setTheme] = useAtom(themeAtom);
@@ -115,8 +116,12 @@ const DemoForm: React.FC = () => {
 
     if (!formData.email.trim()) {
       newErrors.email = "Введите email";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Некорректный формат email";
+    } else {
+      try {
+        z.string().email().parse(formData.email);
+      } catch {
+        newErrors.email = "Некорректный формат email";
+      }
     }
 
     setErrors(newErrors);

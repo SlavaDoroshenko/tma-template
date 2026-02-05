@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 
+// Порог определения клавиатуры: если viewport меньше 75% высоты экрана
+const KEYBOARD_THRESHOLD = 0.75;
+
 // Хук для определения открытой клавиатуры на мобильных устройствах
 // Полезно для скрытия нижней навигации при вводе текста
 export const useKeyboardOpen = () => {
@@ -7,11 +10,11 @@ export const useKeyboardOpen = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.visualViewport) {
-        const isOpen =
-          window.visualViewport.height < window.innerHeight * 0.75;
-        setIsKeyboardOpen(isOpen);
-      }
+      if (!window.visualViewport) return;
+
+      const isOpen =
+        window.visualViewport.height < window.innerHeight * KEYBOARD_THRESHOLD;
+      setIsKeyboardOpen(isOpen);
     };
 
     if (window.visualViewport) {

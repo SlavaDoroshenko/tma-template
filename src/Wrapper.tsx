@@ -12,6 +12,8 @@ import { useKeyboardOpen } from "@/hooks/use-keyboard-open";
 import { Home, Search, User } from "lucide-react";
 
 const TAB_ORDER = ["/", "/explore", "/profile"];
+// Ограничение для предотвращения утечки памяти
+const MAX_HISTORY_LENGTH = 10;
 
 const Wrapper = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -20,7 +22,7 @@ const Wrapper = ({ children }: { children: React.ReactNode }) => {
   const isKeyboardOpen = useKeyboardOpen();
   const navigationHistoryRef = useRef<string[]>([location.pathname]);
 
-  const canGoBack = location.pathname !== "/" && history.length > 1;
+  const canGoBack = location.pathname !== "/" && navigationHistoryRef.current.length > 1;
 
   const getAnimationDirection = (targetPath: string): AnimationDirection => {
     const currentIndex = TAB_ORDER.indexOf(
@@ -38,7 +40,7 @@ const Wrapper = ({ children }: { children: React.ReactNode }) => {
   // Отслеживание истории навигации
   useEffect(() => {
     navigationHistoryRef.current.push(location.pathname);
-    if (navigationHistoryRef.current.length > 10) {
+    if (navigationHistoryRef.current.length > MAX_HISTORY_LENGTH) {
       navigationHistoryRef.current.shift();
     }
   }, [location.pathname]);
