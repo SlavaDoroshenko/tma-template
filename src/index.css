@@ -1,0 +1,209 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@variant dark ([data-theme="dark"] &);
+
+html,
+body,
+#root {
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: auto !important;
+
+  background-color: rgb(var(--page));
+  color: rgb(var(--title));
+  font-family: "Inter", sans-serif;
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  text-align: start;
+}
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0;
+  text-align: center;
+}
+
+:root {
+  --peak: 0 0 0;
+  --page: 245 245 245;
+  --foreground: 255 255 255;
+  --foreground-darker: 235 235 235;
+  --foreground-lighter: 250 250 250;
+  --tabtext: 100 100 100;
+  --accent: 59 130 246;
+  --subaccent-text: 120 120 120;
+  --title: 30 30 30;
+
+  --shadow-s: 0 1px 3px #00000012, 0 1px 2px #00000008;
+  --shadow-m: 0 2px 6px #00000015, 0 2px 4px #0000000a;
+  --shadow-l: 0 4px 12px #00000018, 0 4px 6px #0000000d;
+
+  --shadow-invert-xs: inset 0 1px 2px #00000015, inset 0 -1px 1px #ffffff80;
+  --shadow-invert-s: inset 0 2px 4px #00000020, inset 0 -1px 2px #ffffff90;
+  --shadow-invert-m: inset 0 3px 6px #00000025, inset 0 -2px 4px #ffffffa0;
+  --shadow-invert-l: inset 0 4px 8px #00000030, inset 0 -3px 6px #ffffffb0;
+
+  --success: 34 197 94;
+  --error: 239 68 68;
+  --warning: 249 115 22;
+  --info: 59 130 246;
+  --pure-white: 255 255 255;
+  --pure-black: 0 0 0;
+  --overlay: 0 0 0;
+  --button-primary: 59 130 246;
+  --button-primary-text: 255 255 255;
+  --accent-dark: 37 99 235;
+  --dialog-close: 118 118 118;
+  --input-placeholder: 140 140 140;
+  --toast-bg: 50 50 50;
+  --counter-bg: 240 240 240;
+
+  --background: 0 0% 100%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 221.2 83.2% 53.3%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 98%;
+  --secondary-foreground: 222.2 84% 4.9%;
+  --muted: 210 40% 98%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent-hsl: 210 40% 96%;
+  --accent-foreground: 222.2 84% 4.9%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 221.2 83.2% 53.3%;
+  --radius: 0.75rem;
+
+  --badgeText: 0 0 0;
+}
+
+[data-theme="dark"] {
+  --peak: 0 0 0;
+  --page: 22 22 22;
+  --foreground: 34 34 34;
+  --foreground-darker: 3 3 3;
+  --foreground-lighter: 50 50 50;
+  --tabtext: 170 170 170;
+  --accent: 96 165 250;
+  --subaccent-text: 150 150 150;
+  --title: 255 255 255;
+
+  --shadow-s: inset 0 1px 2px #ffffff30, 0 1px 2px #00000030,
+    0 2px 4px #00000015;
+  --shadow-m: inset 0 1px 2px #ffffff50, 0 2px 4px #00000030,
+    0 4px 8px #00000015;
+  --shadow-l: inset 0 1px 2px #ffffff70, 0 4px 6px #00000030,
+    0 6px 10px #00000015;
+
+  --shadow-invert-xs: inset 0 1px 2px #00000060, inset 0 -1px 1px #ffffff30;
+  --shadow-invert-s: inset 0 3px 4px #0000007a, inset 0 -1px 3px #ffffff35;
+  --shadow-invert-m: inset 0 4px 8px #000000b0, inset 0 -1px 6px #ffffff4d;
+  --shadow-invert-l: inset 0 6px 12px #000000e0, inset 0 -6px 10px #ffffff5e;
+
+  --success: 34 197 94;
+  --error: 239 68 68;
+  --warning: 251 146 60;
+  --info: 96 165 250;
+  --pure-white: 255 255 255;
+  --pure-black: 0 0 0;
+  --overlay: 0 0 0;
+  --button-primary: 59 130 246;
+  --button-primary-text: 255 255 255;
+  --accent-dark: 37 99 235;
+  --dialog-close: 160 160 160;
+  --input-placeholder: 120 120 120;
+  --toast-bg: 29 29 29;
+  --counter-bg: 40 40 40;
+
+  --background: 222.2 84% 4.9%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 217.2 91.2% 59.8%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent-hsl: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 224.3 76.3% 48%;
+
+  --badgeText: 96 165 250;
+}
+
+@theme {
+  --font-sans: "Inter", sans-serif;
+
+  --radius-cs: 20px;
+  --radius-xg: 24px;
+
+  --color-peak: rgb(var(--peak));
+  --color-page: rgb(var(--page));
+  --color-foreground: rgb(var(--foreground));
+  --color-foreground-darker: rgb(var(--foreground-darker));
+  --color-foreground-lighter: rgb(var(--foreground-lighter));
+  --color-tabtext: rgb(var(--tabtext));
+  --color-accent: rgb(var(--accent));
+  --color-subaccent: rgb(var(--subaccent-text));
+  --color-title: rgb(var(--title));
+  --color-success: rgb(var(--success));
+  --color-error: rgb(var(--error));
+  --color-warning: rgb(var(--warning));
+  --color-info: rgb(var(--info));
+  --color-button-primary: rgb(var(--button-primary));
+  --color-button-primary-text: rgb(var(--button-primary-text));
+  --color-accent-dark: rgb(var(--accent-dark));
+  --color-dialog-close: rgb(var(--dialog-close));
+  --color-counter-bg: rgb(var(--counter-bg));
+  --color-badgeText: rgb(var(--badgeText));
+
+  --shadow-s: var(--shadow-s);
+  --shadow-m: var(--shadow-m);
+  --shadow-l: var(--shadow-l);
+  --shadow-invert-xs: var(--shadow-invert-xs);
+  --shadow-invert-s: var(--shadow-invert-s);
+  --shadow-invert-m: var(--shadow-invert-m);
+  --shadow-invert-l: var(--shadow-invert-l);
+}
+
+@layer base {
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+      "Roboto", sans-serif;
+  }
+}
+
+@layer utilities {
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+}
+
+input[type="date"] {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  flex-shrink: 0;
+}

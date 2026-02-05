@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru" class="select-none">
+  <head>
+    <script src="https://telegram.org/js/telegram-web-app.js?59"></script>
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("app-theme");
+          if (t === "dark") {
+            document.documentElement.setAttribute("data-theme", "dark");
+          } else {
+            document.documentElement.removeAttribute("data-theme");
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+
+    <title>TMA Шаблон</title>
+  </head>
+  <body class="select-none">
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+    </style>
+    <div id="root" class="select-none"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
